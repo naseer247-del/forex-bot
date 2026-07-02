@@ -1,0 +1,35 @@
+capital_com:
+  identifier: "naseer247@gmail.com"
+  password: "Ma~Gh!Ib@2026"
+  demo_api_key: ""   # will be overridden by env var
+  api_url: "https://demo-api-capital.backend-capital.com/api/v1/"
+
+trading:
+  pairs: ["EURUSD", "USDJPY", "GBPUSD", "AUDUSD", "USDCAD", "XAUUSD", "BTCUSD"]
+  timeframes:
+    D: DAY
+    H4: HOUR_4
+    H1: HOUR
+    m15: MINUTE_15
+    m5: MINUTE_5
+    m1: MINUTE
+  session_start_utc: 12
+  session_end_utc: 16
+  max_spread_pips: 2.0
+  min_bars: 100
+
+risk:
+  max_risk_per_trade_pct: 0.02
+  max_daily_loss_pct: 0.05
+  max_total_drawdown_pct: 0.20
+  max_open_positions: 5
+  max_correlated_usd_pairs: 3
+  news_blackout_minutes: 15
+
+portfolio:
+  demo_required_win_rate: 0.65
+  demo_sample_trades: 50
+  min_demo_days: 1   # change to 14 before going live
+  profit_accelerator_threshold: 0.20
+  accelerator_size_increase: 1.25
+  accelerator_drawdown_reset: 0.10
