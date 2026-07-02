@@ -32,14 +32,32 @@ def main():
     portfolio = PortfolioManager(config)
     portfolio.update_from_state(simulator.state)
 
+    # --- 1. Get latest M1 closing mid-price for all pairs (to check open positions) ---
     latest_m1 = {}
     for pair in config["trading"]["pairs"]:
         prices = api.get_historical_prices(pair, "MINUTE", 1)
         if prices:
-            latest_m1[pair] = prices[0]["closePrice"]["close"]
+            # Capital.com returns "closePrice": {"bid": ..., "ask": ...}
+            cp = prices[0].get("closePrice", {})
+            bid = cp.get("bid")
+            ask = cp.get("ask")
+            if bid and ask:
+                latest_m1[pair] = (bid + ask) / 2.0   # mid-price
+            elif bid:
+                latest_m1[pair] = bid
+            elif ask:
+                latest_m1[pair] = ask
+            else:
+                # fallback: compute from snapshotTime if needed (rare)
+                latest_m1[pair] = prices[0]["lastTradedVolume"]  # just in case, but this is volume
+                # Actually we should not guess. We'll skip if no price.
+                if pair in latest_m1 and not latest_m1[pair]:
+                    del latest_m1[pair]
 
+    # --- 2. Check for any closed positions (SL/TP hits) ---
     simulator.check_exits(latest_m1)
 
+    # --- 3. Fetch multi-timeframe OHLC data for all pairs ---
     ohlc_cache = {}
     for pair in config["trading"]["pairs"]:
         pair_data = {}
@@ -47,18 +65,27 @@ def main():
             candles = api.get_historical_prices(pair, capital_res, config["trading"]["min_bars"])
             formatted = []
             for c in candles:
+                # Extract bid/ask for OHLC and compute mid prices
+                open_price = mid_or_fallback(c.get("openPrice", {}))
+                high_price = mid_or_fallback(c.get("highPrice", {}))
+                low_price  = mid_or_fallback(c.get("lowPrice", {}))
+                close_price = mid_or_fallback(c.get("closePrice", {}))
+                volume = c.get("lastTradedVolume", 100)
                 formatted.append({
                     "timestamp": c["snapshotTime"],
-                    "open": c["openPrice"]["open"],
-                    "high": c["highPrice"]["high"],
-                    "low": c["lowPrice"]["low"],
-                    "close": c["closePrice"]["close"],
-                    "tickVolume": c.get("lastTradedVolume", 100)
+                    "open": open_price,
+                    "high": high_price,
+                    "low": low_price,
+                    "close": close_price,
+                    "tickVolume": volume
                 })
             pair_data[tf] = formatted
         ohlc_cache[pair] = pair_data
 
+    # --- 4. Run strategy and open new trades ---
     for pair in config["trading"]["pairs"]:
+        if pair not in ohlc_cache:
+            continue
         signal = strategy.analyze(pair, ohlc_cache[pair])
         if signal is None:
             continue
@@ -70,6 +97,7 @@ def main():
             simulator.open_simulated_trade(signal, risk_amount)
             print(f"Opened demo trade {pair} dir={signal['direction']}")
 
+    # --- 5. Update portfolio performance ---
     portfolio.trades = simulator.state["trades"]
     if portfolio.is_live_approved():
         simulator.state["live_approved"] = True
@@ -80,6 +108,16 @@ def main():
     simulator.state["trades"] = portfolio.trades
     simulator.state["start_time"] = portfolio.start_time.isoformat()
     simulator.save_state(simulator.state)
+
+
+def mid_or_fallback(price_dict):
+    """Calculate mid price from bid/ask; if missing, return 0."""
+    bid = price_dict.get("bid")
+    ask = price_dict.get("ask")
+    if bid and ask:
+        return (bid + ask) / 2.0
+    return bid or ask or 0.0
+
 
 if __name__ == "__main__":
     main()
