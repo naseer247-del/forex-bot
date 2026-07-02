@@ -8,9 +8,13 @@ class PortfolioManager:
         self.start_time = datetime.utcnow()
         self.trades = []
 
-    def update_from_state(self, state):
+     def update_from_state(self, state):
         self.trades = state.get("trades", [])
-        self.start_time = datetime.fromisoformat(state.get("start_time", datetime.utcnow().isoformat()))
+        start_str = state.get("start_time", "")
+        if start_str and start_str.strip():
+            self.start_time = datetime.fromisoformat(start_str)
+        else:
+            self.start_time = datetime.utcnow()
 
     def record_trade(self, pl_ratio):
         self.trades.append({
