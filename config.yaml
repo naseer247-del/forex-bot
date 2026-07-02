@@ -13,8 +13,8 @@ trading:
     m15: MINUTE_15
     m5: MINUTE_5
     m1: MINUTE
-  session_start_utc: 12
-  session_end_utc: 16
+  session_start_utc: 8
+  session_end_utc: 17
   max_spread_pips: 2.0
   min_bars: 100
 
