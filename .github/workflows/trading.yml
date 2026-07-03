@@ -28,6 +28,8 @@ jobs:
       - name: Run trading bot
         env:
           CAPITAL_DEMO_API_KEY: ${{ secrets.CAPITAL_DEMO_API_KEY }}
+          CAPITAL_IDENTIFIER: ${{ secrets.CAPITAL_IDENTIFIER }}
+          CAPITAL_PASSWORD: ${{ secrets.CAPITAL_PASSWORD }}
         run: python main.py
 
       - name: Commit updated state
