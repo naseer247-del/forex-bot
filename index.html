@@ -6,60 +6,29 @@
     <title>Forex Bot Dashboard</title>
     <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #0e1624;
-            color: #e0e0e0;
-            max-width: 1000px;
-            margin: 20px auto;
-            padding: 20px;
-        }
-        .card {
-            background: #1c2436;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
-        }
-        .stat {
-            display: inline-block;
-            margin-right: 30px;
-            font-size: 1.2em;
-        }
+        body { font-family: Arial, sans-serif; background: #0e1624; color: #e0e0e0; max-width: 1000px; margin: 20px auto; padding: 20px; }
+        .card { background: #1c2436; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+        .stat { display: inline-block; margin-right: 30px; font-size: 1.2em; }
         .stat label { color: #888; }
         .green { color: #4caf50; }
         .red { color: #f44336; }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
-        th, td {
-            padding: 8px 12px;
-            border-bottom: 1px solid #2a3348;
-            text-align: left;
-        }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { padding: 8px 12px; border-bottom: 1px solid #2a3348; text-align: left; }
         th { background: #2a3348; }
-        .refresh-btn {
-            background: #3f51b5;
-            color: white;
-            border: none;
-            padding: 8px 20px;
-            border-radius: 4px;
-            cursor: pointer;
-        }
+        .refresh-btn { background: #3f51b5; color: white; border: none; padding: 8px 20px; border-radius: 4px; cursor: pointer; }
+        .log-box { background: #0b1119; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 0.9em; }
     </style>
 </head>
 <body>
     <h1>📈 Forex Bot Dashboard</h1>
     <button class="refresh-btn" onclick="loadData()">🔄 Refresh Now</button>
     <div id="stats" class="card"></div>
+    <div id="last-run" class="card"></div>
     <div id="chart" class="card"></div>
     <div id="trades" class="card"></div>
 
     <script>
-        // Replace with your actual GitHub username
-        const USERNAME = "naseer247-del";
+        const USERNAME = "YOUR_GITHUB_USERNAME";  // <-- put your username here
         const REPO = "forex-bot";
         const STATE_URL = `https://raw.githubusercontent.com/${USERNAME}/${REPO}/main/state.json`;
 
@@ -68,12 +37,13 @@
                 const response = await fetch(STATE_URL);
                 const data = await response.json();
                 renderStats(data);
+                renderLastRun(data.last_run || {});
                 renderChart(data);
                 renderTrades(data);
                 document.getElementById("last-update").innerText = new Date().toLocaleTimeString();
             } catch (err) {
                 console.error("Failed to load state:", err);
-                document.getElementById("stats").innerHTML = "<p style='color:red'>Error loading data. Make sure the state.json file exists and the dashboard is deployed correctly.</p>";
+                document.getElementById("stats").innerHTML = "<p style='color:red'>Error loading data. Make sure state.json exists.</p>";
             }
         }
 
@@ -99,22 +69,35 @@
             `;
         }
 
+        function renderLastRun(log) {
+            if (!log.timestamp) {
+                document.getElementById("last-run").innerHTML = "<h3>Last Run</h3><p>No analysis log yet. Bot will update after next cycle.</p>";
+                return;
+            }
+            const session = log.session_active ? "✅ Trading session" : "⏸️ Outside session";
+            const html = `
+                <h3>Last Run: ${new Date(log.timestamp).toLocaleString()}</h3>
+                <div class="log-box">
+                    <strong>${session}</strong><br>
+                    Pairs scanned: ${log.pairs_scanned || 0}<br>
+                    Signals found: ${log.signals_found || 0}<br>
+                    Trades opened this cycle: ${log.trades_opened || 0}<br>
+                    Errors: ${log.errors && log.errors.length > 0 ? log.errors.join('<br>') : 'none'}
+                </div>
+            `;
+            document.getElementById("last-run").innerHTML = html;
+        }
+
         function renderChart(data) {
             const trades = data.trades || [];
-            // Reconstruct equity curve from trade outcomes
-            let equityCurve = [1000]; // starting equity
+            let equityCurve = [1000];
             let current = 1000;
             trades.forEach(t => {
-                // approximate: t.r_multiple * risk per trade (risk per trade was 2% of equity? we don't store exact $ amount, but we can estimate from equity)
-                // Simplification: assume risk per trade = 2% of equity at that time (or fixed risk amount). We'll use a fixed starting risk for demo.
-                // Actually, we can compute exact P&L if we stored it. Since we don't, we'll infer from r_multiple and assume risk per trade = 2% of starting equity.
-                // This is approximate; for exact, we would need to store P&L in state.json.
-                const risk = current * 0.02; // average risk per trade
+                const risk = current * 0.02;
                 const pl = risk * t.r_multiple;
                 current += pl;
                 equityCurve.push(current);
             });
-
             const trace = {
                 x: Array.from({length: equityCurve.length}, (_, i) => i),
                 y: equityCurve,
@@ -136,7 +119,7 @@
         }
 
         function renderTrades(data) {
-            const trades = (data.trades || []).slice(-20).reverse(); // last 20 trades
+            const trades = (data.trades || []).slice(-20).reverse();
             let html = '<h3>Recent Trades</h3><table><tr><th>Time</th><th>Pair</th><th>Dir</th><th>Entry</th><th>Exit Reason</th><th>R Multiple</th></tr>';
             trades.forEach(t => {
                 const dir = t.direction === 1 ? 'Long' : 'Short';
@@ -155,7 +138,6 @@
             document.getElementById("trades").innerHTML = html;
         }
 
-        // Load on page load and auto-refresh every 5 minutes
         loadData();
         setInterval(loadData, 300000);
     </script>
