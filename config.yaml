@@ -1,6 +1,4 @@
 capital_com:
-  identifier: "naseer247@gmail.com"
-  password: "Ma~Gh!Ib@2026"
   demo_api_key: ""   # will be overridden by env var
   api_url: "https://demo-api-capital.backend-capital.com/api/v1/"
 
