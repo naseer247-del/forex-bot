@@ -5,5 +5,13 @@
   "trades": [],
   "daily_pnl": 0.0,
   "start_time": "2026-07-02T12:01:37.266439",
-  "live_approved": false
+  "live_approved": false,
+  "last_run": {
+    "timestamp": "2026-07-03T04:16:08.911285",
+    "session_active": false,
+    "pairs_scanned": 0,
+    "signals_found": 0,
+    "trades_opened": 0,
+    "errors": []
+  }
 }
