@@ -17,7 +17,8 @@ class Simulator:
             "trades": [],
             "daily_pnl": 0.0,
             "start_time": "",
-            "live_approved": False
+            "live_approved": False,
+            "last_run": {}
         }
 
     def save_state(self, new_state):
@@ -82,3 +83,7 @@ class Simulator:
     def _today_str(self):
         from datetime import datetime
         return datetime.utcnow().strftime("%Y-%m-%d")
+
+    def set_last_run(self, run_info):
+        """Store a summary of the latest bot cycle."""
+        self.state["last_run"] = run_info
