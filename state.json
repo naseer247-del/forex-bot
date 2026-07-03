@@ -7,9 +7,9 @@
   "start_time": "2026-07-02T12:01:37.266439",
   "live_approved": false,
   "last_run": {
-    "timestamp": "2026-07-03T15:45:24.913031",
-    "session_active": true,
-    "pairs_scanned": 7,
+    "timestamp": "2026-07-03T20:21:33.710790",
+    "session_active": false,
+    "pairs_scanned": 0,
     "signals_found": 0,
     "trades_opened": 0,
     "errors": []
