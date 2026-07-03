@@ -8,9 +8,12 @@ class CapitalAPI:
         with open("config.yaml") as f:
             config = yaml.safe_load(f)
         self.base_url = config["capital_com"]["api_url"]
-        self.identifier = config["capital_com"]["identifier"]
-        self.password = config["capital_com"]["password"]
-        self.api_key = os.environ.get("CAPITAL_DEMO_API_KEY", config["capital_com"].get("demo_api_key", ""))
+        # Use environment variables for sensitive data
+        self.identifier = os.environ.get("CAPITAL_IDENTIFIER")
+        self.password = os.environ.get("CAPITAL_PASSWORD")
+        self.api_key = os.environ.get("CAPITAL_DEMO_API_KEY")
+        if not self.identifier or not self.password:
+            raise Exception("Missing CAPITAL_IDENTIFIER or CAPITAL_PASSWORD environment variables")
         self.session = requests.Session()
         self.session.headers.update({
             "X-CAP-API-KEY": self.api_key,
