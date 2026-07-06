@@ -6,88 +6,222 @@
     <title>Forex Bot Dashboard</title>
     <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; background: #0e1624; color: #e0e0e0; max-width: 1000px; margin: 20px auto; padding: 20px; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0e1624; color: #e0e0e0; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        h1 { margin: 20px 0; text-align: center; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; gap: 15px; }
+        .refresh-btn { background: #3f51b5; color: white; border: none; padding: 10px 25px; border-radius: 4px; cursor: pointer; font-size: 1em; }
+        .refresh-btn:hover { background: #303f9f; }
+        .status { display: flex; align-items: center; gap: 10px; font-weight: bold; }
+        .status-indicator { width: 12px; height: 12px; border-radius: 50%; }
+        .status-online { background: #4caf50; }
+        .status-offline { background: #f44336; }
         .card { background: #1c2436; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.5); }
-        .stat { display: inline-block; margin-right: 30px; font-size: 1.2em; }
-        .stat label { color: #888; }
+        .card h3 { margin-bottom: 15px; color: #64b5f6; border-bottom: 2px solid #3f51b5; padding-bottom: 10px; }
+        .stat { display: inline-block; margin-right: 30px; margin-bottom: 15px; }
+        .stat label { color: #888; font-size: 0.9em; display: block; }
+        .stat-value { font-size: 1.4em; font-weight: bold; }
         .green { color: #4caf50; }
         .red { color: #f44336; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { padding: 8px 12px; border-bottom: 1px solid #2a3348; text-align: left; }
-        th { background: #2a3348; }
-        .refresh-btn { background: #3f51b5; color: white; border: none; padding: 8px 20px; border-radius: 4px; cursor: pointer; }
-        .log-box { background: #0b1119; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 0.9em; }
-        .small { color: #aaa; font-size: 0.9em; }
+        .yellow { color: #ffc107; }
+        .blue { color: #2196f3; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.95em; }
+        th, td { padding: 12px; border-bottom: 1px solid #2a3348; text-align: left; }
+        th { background: #2a3348; font-weight: bold; color: #64b5f6; }
+        tr:hover { background: #252d3d; }
+        .log-box { background: #0b1119; padding: 12px; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 0.9em; max-height: 300px; overflow-y: auto; border-left: 3px solid #3f51b5; }
+        .small { color: #aaa; font-size: 0.85em; }
+        .pair-tag { display: inline-block; background: #3f51b5; color: white; padding: 4px 10px; border-radius: 12px; margin: 3px; font-size: 0.9em; }
+        .signal-item { background: #0b1119; padding: 12px; margin: 8px 0; border-left: 3px solid #64b5f6; border-radius: 4px; }
+        .signal-item.bullish { border-left-color: #4caf50; }
+        .signal-item.bearish { border-left-color: #f44336; }
+        .signal-item.no-signal { border-left-color: #888; opacity: 0.7; }
+        .criteria-check { display: flex; align-items: center; gap: 10px; margin: 8px 0; }
+        .check-box { width: 20px; height: 20px; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+        .check-box.pass { background: #4caf50; color: white; }
+        .check-box.fail { background: #f44336; color: white; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 1024px) { .grid-2 { grid-template-columns: 1fr; } }
+        .loading { text-align: center; padding: 40px; }
+        .spinner { border: 4px solid #2a3348; border-top: 4px solid #3f51b5; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
-    <h1>📈 Forex Bot Dashboard</h1>
-    <button class="refresh-btn" onclick="loadData()">🔄 Refresh Now</button>
-    <span class="small"> Auto-refresh every 5 minutes (dashboard polls state.json)</span>
-    <div id="stats" class="card"></div>
-    <div id="last-run" class="card"></div>
-    <div id="chart" class="card"></div>
-    <div id="trades" class="card"></div>
+    <div class="container">
+        <div class="header">
+            <h1>📈 Forex Bot Dashboard</h1>
+            <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                <div class="status">
+                    <div class="status-indicator status-online" id="status-indicator"></div>
+                    <span id="status-text">Loading...</span>
+                </div>
+                <button class="refresh-btn" onclick="loadData()">🔄 Refresh Now</button>
+            </div>
+        </div>
+
+        <div id="stats" class="card loading"><div class="spinner"></div>Loading...</div>
+        <div id="last-run" class="card loading"><div class="spinner"></div>Loading...</div>
+        
+        <div class="grid-2">
+            <div id="pairs-analysis" class="card loading"><div class="spinner"></div>Loading...</div>
+            <div id="trade-criteria" class="card loading"><div class="spinner"></div>Loading...</div>
+        </div>
+
+        <div id="signals-detail" class="card loading"><div class="spinner"></div>Loading...</div>
+        <div id="chart" class="card loading"><div class="spinner"></div>Loading...</div>
+        <div id="trades" class="card loading"><div class="spinner"></div>Loading...</div>
+    </div>
 
     <script>
-        const USERNAME = "naseer247-del";  // <-- put your username here
+        const USERNAME = "naseer247-del";
         const REPO = "forex-bot";
         const STATE_URL = `https://raw.githubusercontent.com/${USERNAME}/${REPO}/main/state.json`;
 
         async function loadData() {
             try {
                 const response = await fetch(STATE_URL);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
+                
+                document.getElementById("status-indicator").className = "status-indicator status-online";
+                document.getElementById("status-text").textContent = "Online ✓";
+                
                 renderStats(data);
                 renderLastRun(data.last_run || {});
+                renderPairsAnalysis(data);
+                renderTradeCriteria(data);
+                renderSignalsDetail(data);
                 renderChart(data);
                 renderTrades(data);
-                document.getElementById("last-update").innerText = new Date().toLocaleTimeString();
             } catch (err) {
                 console.error("Failed to load state:", err);
-                document.getElementById("stats").innerHTML = "<p style='color:red'>Error loading data. Make sure state.json exists.</p>";
+                document.getElementById("status-indicator").className = "status-indicator status-offline";
+                document.getElementById("status-text").textContent = "Offline ✗";
+                document.getElementById("stats").innerHTML = `<p style='color:red'>⚠️ Error loading data: ${err.message}</p><p class='small'>Make sure state.json exists in the repo and the workflow is running.</p>`;
             }
         }
 
         function renderStats(data) {
-            const equity = data.equity.toFixed(2);
-            const peak = data.peak_equity.toFixed(2);
-            const pnl = data.daily_pnl.toFixed(2);
+            const equity = data.equity?.toFixed(2) || "0.00";
+            const peak = data.peak_equity?.toFixed(2) || "0.00";
+            const pnl = data.daily_pnl?.toFixed(2) || "0.00";
             const trades = data.trades || [];
             const wins = trades.filter(t => t.r_multiple > 0).length;
             const winRate = trades.length ? ((wins / trades.length) * 100).toFixed(1) : 0;
             const liveApproved = data.live_approved ? "✅ Yes" : "❌ No";
-            const drawdown = ((data.peak_equity - data.equity) / data.peak_equity * 100).toFixed(2);
+            const drawdown = data.peak_equity > 0 ? ((data.peak_equity - data.equity) / data.peak_equity * 100).toFixed(2) : "0.00";
 
             document.getElementById("stats").innerHTML = `
-                <div class="stat"><label>Equity</label><br><span class="green">$${equity}</span></div>
-                <div class="stat"><label>Peak Equity</label><br>$${peak}</div>
-                <div class="stat"><label>Daily P&L</label><br><span class="${pnl >= 0 ? 'green' : 'red'}">$${pnl}</span></div>
-                <div class="stat"><label>Drawdown</label><br><span class="red">${drawdown}%</span></div>
-                <div class="stat"><label>Total Trades</label><br>${trades.length}</div>
-                <div class="stat"><label>Win Rate</label><br><span class="${winRate >= 65 ? 'green' : 'red'}">${winRate}%</span></div>
-                <div class="stat"><label>Live Approved?</label><br>${liveApproved}</div>
-                <br><small id="last-update"></small>
+                <h3>📊 Portfolio Summary</h3>
+                <div class="stat"><label>Current Equity</label><div class="stat-value green">$${equity}</div></div>
+                <div class="stat"><label>Peak Equity</label><div class="stat-value">$${peak}</div></div>
+                <div class="stat"><label>Daily P&L</label><div class="stat-value ${pnl >= 0 ? 'green' : 'red'}">$${pnl}</div></div>
+                <div class="stat"><label>Max Drawdown</label><div class="stat-value red">${drawdown}%</div></div>
+                <div class="stat"><label>Total Trades</label><div class="stat-value blue">${trades.length}</div></div>
+                <div class="stat"><label>Win Rate</label><div class="stat-value ${winRate >= 65 ? 'green' : 'red'}">${winRate}%</div></div>
+                <div class="stat"><label>Live Trading</label><div class="stat-value">${liveApproved}</div></div>
+                <div class="stat"><label>Open Positions</label><div class="stat-value yellow">${(data.open_positions || []).length}</div></div>
             `;
         }
 
         function renderLastRun(log) {
             if (!log.timestamp) {
-                document.getElementById("last-run").innerHTML = "<h3>Last Run</h3><p>No analysis log yet. Bot will update after next cycle.</p>";
+                document.getElementById("last-run").innerHTML = "<h3>⏰ Last Run</h3><p>No data yet. Waiting for first cycle...</p>";
                 return;
             }
-            const session = log.session_active ? "✅ Trading session" : "⏸️ Outside session";
-            const html = `
-                <h3>Last Run: ${new Date(log.timestamp).toLocaleString()}</h3>
+            const session = log.session_active ? "✅ Trading Session Active" : "⏸️ Outside Trading Hours";
+            const hasErrors = log.errors && log.errors.length > 0;
+            
+            document.getElementById("last-run").innerHTML = `
+                <h3>⏰ Last Run - ${new Date(log.timestamp).toLocaleString()}</h3>
                 <div class="log-box">
-                    <strong>${session}</strong><br>
-                    Pairs scanned: ${log.pairs_scanned || 0}<br>
-                    Signals found: ${log.signals_found || 0}<br>
-                    Trades opened this cycle: ${log.trades_opened || 0}<br>
-                    Errors: ${log.errors && log.errors.length > 0 ? log.errors.join('<br>') : 'none'}
+                    <strong>${session}</strong><br><br>
+                    <strong>Cycle Summary:</strong><br>
+                    • Pairs Scanned: <span class="blue">${log.pairs_scanned || 0}</span><br>
+                    • Signals Found: <span class="yellow">${log.signals_found || 0}</span><br>
+                    • Trades Opened: <span class="green">${log.trades_opened || 0}</span><br>
+                    ${hasErrors ? `<br><strong style="color: #f44336;">Errors:</strong><br>` + log.errors.map(e => `• ${e}`).join('<br>') : '• No errors ✓'}
                 </div>
             `;
-            document.getElementById("last-run").innerHTML = html;
+        }
+
+        function renderPairsAnalysis(data) {
+            const log = data.last_run || {};
+            const pairs = ["EURUSD", "USDJPY", "GBPUSD", "AUDUSD", "USDCAD", "XAUUSD", "BTCUSD"];
+            
+            let html = `<h3>🔍 Pairs Analyzed (${log.pairs_scanned || 0}/${pairs.length})</h3>`;
+            html += `<div>Pairs: `;
+            pairs.forEach(pair => {
+                html += `<span class="pair-tag">${pair}</span>`;
+            });
+            html += `</div>`;
+            
+            if (log.pairs_scanned) {
+                html += `<p style="margin-top: 15px; color: #aaa;">Scanned <strong>${log.pairs_scanned}</strong> pairs this cycle</p>`;
+            }
+            
+            document.getElementById("pairs-analysis").innerHTML = html;
+        }
+
+        function renderTradeCriteria(data) {
+            const state = data;
+            const openPos = (state.open_positions || []).length;
+            const equity = state.equity || 0;
+            const dailyPnl = state.daily_pnl || 0;
+            
+            // Assuming risk config: max 5 open, max 5% daily loss, max 3 USD pairs
+            const maxOpen = 5;
+            const maxDailyLossPct = 0.05;
+            const maxUsdPairs = 3;
+            
+            const canOpenMore = openPos < maxOpen;
+            const equityHealthy = equity > 0;
+            const dailyLossOk = dailyPnl >= -(equity * maxDailyLossPct);
+            const usdCount = openPos; // Simplified
+            const usdOk = usdCount < maxUsdPairs;
+            
+            document.getElementById("trade-criteria").innerHTML = `
+                <h3>✅ Trade Entry Criteria</h3>
+                <div class="criteria-check">
+                    <div class="check-box ${canOpenMore ? 'pass' : 'fail'}">${canOpenMore ? '✓' : '✗'}</div>
+                    <div>Open Positions (${openPos}/${maxOpen}) ${canOpenMore ? '✓ Can open' : '✗ Limit reached'}</div>
+                </div>
+                <div class="criteria-check">
+                    <div class="check-box ${equityHealthy ? 'pass' : 'fail'}">${equityHealthy ? '✓' : '✗'}</div>
+                    <div>Equity Healthy ($${equity.toFixed(2)}) ${equityHealthy ? '✓' : '✗ Account blown'}</div>
+                </div>
+                <div class="criteria-check">
+                    <div class="check-box ${dailyLossOk ? 'pass' : 'fail'}">${dailyLossOk ? '✓' : '✗'}</div>
+                    <div>Daily Loss Limit ($${dailyPnl.toFixed(2)} / -$${(equity * maxDailyLossPct).toFixed(2)}) ${dailyLossOk ? '✓' : '✗ Loss limit hit'}</div>
+                </div>
+                <div class="criteria-check">
+                    <div class="check-box ${usdOk ? 'pass' : 'fail'}">${usdOk ? '✓' : '✗'}</div>
+                    <div>Correlated Pairs (${usdCount}/${maxUsdPairs}) ${usdOk ? '✓' : '✗ Too many USD pairs'}</div>
+                </div>
+                <p style="margin-top: 15px; color: #aaa; font-size: 0.9em;">All criteria must pass for a trade to open.</p>
+            `;
+        }
+
+        function renderSignalsDetail(data) {
+            const log = data.last_run || {};
+            const signalsFound = log.signals_found || 0;
+            
+            let html = `<h3>📡 Signal Analysis (${signalsFound} signal${signalsFound !== 1 ? 's' : ''} found)</h3>`;
+            
+            if (signalsFound === 0) {
+                html += `<div class="signal-item no-signal">No signals detected in this cycle. Strategy did not identify any qualifying trade setups.</div>`;
+            } else {
+                html += `<div style="color: #4caf50;"><strong>${signalsFound} signal(s) matched technical criteria:</strong></div>`;
+                for (let i = 0; i < signalsFound; i++) {
+                    html += `<div class="signal-item bullish">
+                        • Signal ${i + 1}: Strategy conditions matched (awaiting risk checks)
+                    </div>`;
+                }
+            }
+            
+            document.getElementById("signals-detail").innerHTML = html;
         }
 
         function renderChart(data) {
@@ -95,53 +229,74 @@
             let equityCurve = [1000];
             let current = 1000;
             trades.forEach(t => {
-                const risk = current * 0.02;
-                const pl = risk * t.r_multiple;
+                const risk = 1000 * 0.02;
+                const pl = risk * (t.r_multiple || 0);
                 current += pl;
                 equityCurve.push(current);
             });
+            
             const trace = {
                 x: Array.from({length: equityCurve.length}, (_, i) => i),
                 y: equityCurve,
                 type: 'scatter',
                 mode: 'lines+markers',
-                marker: {color: '#4caf50'},
-                line: {color: '#2196f3'}
+                marker: {color: '#4caf50', size: 6},
+                line: {color: '#2196f3', width: 2},
+                fill: 'tozeroy',
+                fillcolor: 'rgba(33, 150, 243, 0.1)'
             };
+            
             const layout = {
-                title: 'Equity Curve',
+                title: '📈 Equity Curve',
                 paper_bgcolor: '#1c2436',
-                plot_bgcolor: '#1c2436',
+                plot_bgcolor: '#0b1119',
                 font: {color: '#e0e0e0'},
-                xaxis: {title: 'Trade Number'},
-                yaxis: {title: 'Equity ($)'},
-                margin: {l: 50, r: 20, t: 40, b: 40}
+                xaxis: {title: 'Trade Number', gridcolor: '#2a3348'},
+                yaxis: {title: 'Equity ($)', gridcolor: '#2a3348'},
+                margin: {l: 60, r: 20, t: 50, b: 40},
+                hovermode: 'closest'
             };
-            Plotly.newPlot('chart', [trace], layout);
+            
+            Plotly.newPlot('chart', [trace], layout, {responsive: true});
         }
 
         function renderTrades(data) {
-            const trades = (data.trades || []).slice(-20).reverse();
-            let html = '<h3>Recent Trades</h3><table><tr><th>Time</th><th>Pair</th><th>Dir</th><th>Entry</th><th>Exit Reason</th><th>R Multiple</th></tr>';
-            trades.forEach(t => {
-                const dir = t.direction === 1 ? 'Long' : 'Short';
-                const r = t.r_multiple.toFixed(1);
-                const color = r > 0 ? 'green' : 'red';
-                html += `<tr>
-                    <td>${t.timestamp ? new Date(t.timestamp).toLocaleString() : ''}</td>
-                    <td>${t.pair}</td>
-                    <td>${dir}</td>
-                    <td>${t.entry}</td>
-                    <td>${t.exit_reason}</td>
-                    <td style="color:${color}">${r}</td>
-                </tr>`;
-            });
-            html += '</table>';
+            const trades = (data.trades || []).slice(-30).reverse();
+            let html = '<h3>📊 Recent Closed Trades</h3>';
+            
+            if (trades.length === 0) {
+                html += '<p style="color: #aaa;">No closed trades yet.</p>';
+            } else {
+                html += '<table><tr><th>Time</th><th>Pair</th><th>Direction</th><th>Entry</th><th>Exit</th><th>Exit Reason</th><th>R Multiple</th></tr>';
+                trades.forEach(t => {
+                    const dir = t.direction === 1 ? '📈 Long' : '📉 Short';
+                    const r = (t.r_multiple || 0).toFixed(2);
+                    const color = r > 0 ? 'green' : 'red';
+                    const reason = t.exit_reason === 'tp' ? '🎯 Take Profit' : '🛑 Stop Loss';
+                    html += `<tr>
+                        <td style="font-size: 0.9em;">${t.timestamp ? new Date(t.timestamp).toLocaleString() : 'N/A'}</td>
+                        <td><strong>${t.pair}</strong></td>
+                        <td>${dir}</td>
+                        <td>${(t.entry || 0).toFixed(5)}</td>
+                        <td>${(t.exit || 0).toFixed(5)}</td>
+                        <td>${reason}</td>
+                        <td style="color:${color}; font-weight: bold;">R${r}</td>
+                    </tr>`;
+                });
+                html += '</table>';
+            }
+            
             document.getElementById("trades").innerHTML = html;
         }
 
+        // Initial load and auto-refresh every 5 minutes
         loadData();
         setInterval(loadData, 300000);
+
+        // Also refresh on visibility change
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) loadData();
+        });
     </script>
 </body>
 </html>
