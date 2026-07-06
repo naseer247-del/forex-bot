@@ -14,7 +14,7 @@ trading:
   session_start_utc: 3
   session_end_utc: 17
   max_spread_pips: 2.0
-  min_bars: 100
+  min_bars: 60
   cycle_seconds: 300
 
 risk:
