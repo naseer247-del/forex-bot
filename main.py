@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import time
+import subprocess
 from datetime import datetime
 import pytz
 import yaml
@@ -134,6 +135,50 @@ def mid_or_fallback(price_dict):
     return bid or ask or 0.0
 
 
+def commit_and_push_state():
+    """
+    Commit and push state.json to GitHub using PAT.
+    PAT should be set via environment variable GITHUB_PAT.
+    """
+    try:
+        pat = os.environ.get("GITHUB_PAT")
+        if not pat:
+            print("Warning: GITHUB_PAT not set. Skipping git push.")
+            return False
+        
+        # Configure git credentials
+        repo_url = "https://github.com/naseer247-del/forex-bot.git"
+        
+        # Use PAT for authentication
+        auth_url = repo_url.replace("https://", f"https://x-access-token:{pat}@")
+        
+        # Configure git user (required for commits)
+        subprocess.run(["git", "config", "user.email", "bot@forex-bot.local"], check=False)
+        subprocess.run(["git", "config", "user.name", "Forex Bot"], check=False)
+        
+        # Stage, commit, and push state.json
+        subprocess.run(["git", "add", "state.json"], check=True)
+        
+        # Check if there are changes to commit
+        result = subprocess.run(["git", "diff", "--cached", "--quiet"], capture_output=True)
+        if result.returncode == 0:
+            # No changes
+            print("No changes in state.json to commit.")
+            return True
+        
+        subprocess.run(["git", "commit", "-m", f"Update state.json - {datetime.utcnow().isoformat()}"], check=True)
+        subprocess.run(["git", "push", auth_url, "main"], check=True, capture_output=True)
+        
+        print("Successfully pushed state.json to GitHub")
+        return True
+    except subprocess.CalledProcessError as e:
+        print(f"Error during git commit/push: {e}")
+        return False
+    except Exception as e:
+        print(f"Unexpected error in commit_and_push_state: {e}")
+        return False
+
+
 def main():
     # create long-lived objects to reuse between cycles
     api = None
@@ -155,6 +200,10 @@ def main():
         while True:
             start = time.time()
             run_cycle(api, simulator, strategy, risk_mgr, portfolio)
+            
+            # Attempt to commit and push state.json
+            commit_and_push_state()
+            
             elapsed = time.time() - start
             to_sleep = max(0, cycle_seconds - elapsed)
             # sleep in small increments to be responsive to KeyboardInterrupt
@@ -166,6 +215,7 @@ def main():
         try:
             if simulator:
                 simulator.save_state(simulator.state)
+                commit_and_push_state()
         except Exception:
             pass
     except Exception as e:
@@ -174,6 +224,7 @@ def main():
             if simulator:
                 simulator.set_last_run({"timestamp": datetime.utcnow().isoformat(), "session_active": False, "errors": [str(e)]})
                 simulator.save_state(simulator.state)
+                commit_and_push_state()
         except Exception:
             pass
 
