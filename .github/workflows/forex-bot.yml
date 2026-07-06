@@ -1,0 +1,43 @@
+name: Forex Bot - Run Every 5 Minutes
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write        # required to push state.json
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4   # generous, bot finishes in <30 seconds normally
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5   # updated, no Node warnings
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run bot cycle
+        env:
+          CAPITAL_IDENTIFIER: ${{ secrets.CAPITAL_IDENTIFIER }}
+          CAPITAL_PASSWORD: ${{ secrets.CAPITAL_PASSWORD }}
+          CAPITAL_DEMO_API_KEY: ${{ secrets.CAPITAL_DEMO_API_KEY }}
+        run: python main.py          # no timeout, no || true – let it fail if it breaks
+
+      - name: Commit and push state.json
+        run: |
+          git config user.email "bot@forex-bot.local"
+          git config user.name "Forex Bot"
+          if ! git diff --quiet state.json; then
+            git add state.json
+            git commit -m "Update state [skip ci]"
+            git push origin main
+          fi
