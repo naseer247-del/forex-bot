@@ -17,11 +17,13 @@
         th { background: #2a3348; }
         .refresh-btn { background: #3f51b5; color: white; border: none; padding: 8px 20px; border-radius: 4px; cursor: pointer; }
         .log-box { background: #0b1119; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 0.9em; }
+        .small { color: #aaa; font-size: 0.9em; }
     </style>
 </head>
 <body>
     <h1>📈 Forex Bot Dashboard</h1>
     <button class="refresh-btn" onclick="loadData()">🔄 Refresh Now</button>
+    <span class="small"> Auto-refresh every 5 minutes (dashboard polls state.json)</span>
     <div id="stats" class="card"></div>
     <div id="last-run" class="card"></div>
     <div id="chart" class="card"></div>
