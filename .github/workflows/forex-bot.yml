@@ -11,7 +11,7 @@ permissions:
 jobs:
   run-bot:
     runs-on: ubuntu-latest
-    timeout-minutes: 4   # generous, bot finishes in <30 seconds normally
+    timeout-minutes: 10   # generous, bot finishes in <30 seconds normally
 
     steps:
       - name: Checkout repository
