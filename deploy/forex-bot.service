@@ -1,0 +1,24 @@
+[Unit]
+Description=Forex Bot Service
+After=network.target
+
+[Service]
+Type=simple
+# Run as a dedicated user. Create user `forexbot` or change to an existing user.
+User=forexbot
+# Set WorkingDirectory to where you place the repository (change if needed)
+WorkingDirectory=/opt/forex-bot
+# ExecStart should use the system Python or a virtualenv. Adjust path if needed.
+ExecStart=/usr/bin/env python3 /opt/forex-bot/main.py
+Restart=always
+RestartSec=10
+# You can either embed env vars here (not recommended) or use EnvironmentFile
+# Example placeholders (replace with real values or use EnvironmentFile):
+Environment=CAPITAL_IDENTIFIER=your_identifier_here
+Environment=CAPITAL_PASSWORD=your_password_here
+Environment=CAPITAL_DEMO_API_KEY=your_demo_api_key_here
+# Alternatively, create /etc/forex-bot.env with sensitive env vars and use:
+# EnvironmentFile=/etc/forex-bot.env
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,18 @@
+version: "3.8"
+
+services:
+  forex-bot:
+    build: .
+    container_name: forex-bot
+    restart: unless-stopped
+    environment:
+      - CAPITAL_IDENTIFIER=${CAPITAL_IDENTIFIER}
+      - CAPITAL_PASSWORD=${CAPITAL_PASSWORD}
+      - CAPITAL_DEMO_API_KEY=${CAPITAL_DEMO_API_KEY}
+    volumes:
+      - ./state.json:/app/state.json
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
