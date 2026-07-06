@@ -64,12 +64,12 @@ def run_cycle(api, simulator, strategy, risk_mgr, portfolio):
 
     # --- Build OHLC cache and run strategy ---
     ohlc_cache = {}
-    for pair in config["trading"]["pairs"]:
+        for pair in config["trading"]["pairs"]:
         pair_data = {}
         for tf, capital_res in config["trading"]["timeframes"].items():
-            try:
-                candles = api.get_historical_prices(pair, capital_res, config["trading"]["min_bars"])
-                formatted = []
+            candles = api.get_historical_prices(pair, capital_res, config["trading"]["min_bars"])
+                       print(f"Fetched {pair} {tf}: {len(candles)} candles") ...
+            formatted = []
                 for c in candles:
                     open_price = mid_or_fallback(c.get("openPrice", {}))
                     high_price = mid_or_fallback(c.get("highPrice", {}))
